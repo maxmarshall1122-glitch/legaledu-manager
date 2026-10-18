@@ -592,6 +592,14 @@ const uz: Dict = {
     retry: "Qayta urinish",
     goHome: "Boshqaruv paneliga oʻtish",
   },
+  setup: {
+    title: "Sozlash talab etiladi",
+    body: "Serverdagi Supabase sozlamalari toʻliq emas yoki notoʻgʻri, shuning uchun ilova xavfsiz ishga tusha olmaydi.",
+    url_missing: "NEXT_PUBLIC_SUPABASE_URL boʻsh.",
+    url_invalid: "NEXT_PUBLIC_SUPABASE_URL notoʻgʻri manzil. U https://abcdefgh.supabase.co koʻrinishida boʻlishi kerak (boʻsh joysiz, qoʻshimcha yoʻlsiz).",
+    key_missing: "NEXT_PUBLIC_SUPABASE_ANON_KEY boʻsh.",
+    fix: "Qiymatni hosting sozlamalarida tuzating (Vercel → Project → Settings → Environment Variables), soʻng qayta deploy qiling.",
+  },
   confirm: {
     deleteConfirm: "Butunlay oʻchirish",
     irreversible: "Bu amalni qaytarib boʻlmaydi.",

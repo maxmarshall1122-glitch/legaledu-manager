@@ -1,5 +1,6 @@
 import "server-only";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { createServerClient } from "@supabase/ssr";
@@ -9,7 +10,8 @@ import { SupabaseRepo } from "@/lib/db/supabase-repo";
 import type { Repo } from "@/lib/db/repo";
 import { buildDemoSeed } from "@/lib/demo/seed";
 import { LocalFileStorage, SupabaseFileStorage, type FileStorage } from "@/lib/storage/storage";
-import { appMode } from "@/lib/config";
+import { appMode, configProblem } from "@/lib/config";
+import { supabaseEnv } from "@/lib/env";
 
 // ---------- Demo backend (local file + local private folder) ----------
 
@@ -23,7 +25,9 @@ const g = globalThis as unknown as { __legaleduDemo?: Promise<DemoBackend> };
 
 function demoDir(): string {
   // Runtime-only location for demo data; excluded from build output tracing.
-  return path.resolve(/*turbopackIgnore: true*/ process.env.DEMO_DATA_DIR || path.join(process.cwd(), ".data"));
+  // Serverless hosts (e.g. Vercel) have a read-only project directory: use the temp dir there.
+  const fallback = process.env.VERCEL ? path.join(os.tmpdir(), "legaledu-demo") : path.join(process.cwd(), ".data");
+  return path.resolve(/*turbopackIgnore: true*/ process.env.DEMO_DATA_DIR || fallback);
 }
 
 async function writeSeedFiles(storage: LocalFileStorage, files: Map<string, Uint8Array>) {
@@ -54,6 +58,7 @@ async function initDemo(): Promise<DemoBackend> {
 }
 
 export function getDemoBackend(): Promise<DemoBackend> {
+  if (configProblem()) return Promise.reject(new Error("Supabase configuration is invalid"));
   g.__legaleduDemo ??= initDemo();
   return g.__legaleduDemo;
 }
@@ -73,7 +78,8 @@ export async function resetDemoData(): Promise<void> {
 /** Supabase client bound to the signed-in user's session cookies (RLS applies). */
 export async function supabaseServerClient() {
   const cookieStore = await cookies();
-  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const { url, anonKey } = supabaseEnv();
+  return createServerClient(url, anonKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (list) => {
@@ -88,6 +94,8 @@ export async function supabaseServerClient() {
 }
 
 export async function getBackend(): Promise<{ repo: Repo; storage: FileStorage }> {
+  // Never fall back to demo data when Supabase variables exist but are invalid.
+  if (configProblem()) throw new Error("Supabase configuration is invalid");
   if (appMode() === "demo") {
     const d = await getDemoBackend();
     return { repo: d.repo, storage: d.storage };

@@ -1,4 +1,5 @@
 import "server-only";
+import { supabaseEnv } from "@/lib/env";
 
 /**
  * Server-side configuration. Secrets (API keys, service keys) are read here and
@@ -11,7 +12,12 @@ function int(name: string, fallback: number, min: number, max: number): number {
 }
 
 export function supabaseConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return supabaseEnv().configured;
+}
+
+/** Set when Supabase variables are present but unusable; the app then shows a setup page instead of crashing. */
+export function configProblem() {
+  return supabaseEnv().problem;
 }
 
 export type AppMode = "supabase" | "demo";

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { supabaseEnv } from "@/lib/env";
 
 const PUBLIC_PATHS = ["/login"];
 
@@ -14,22 +15,28 @@ export async function proxy(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   let response = NextResponse.next({ request });
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let signedIn: boolean;
-  if (url && key) {
-    const supabase = createServerClient(url, key, {
-      cookies: {
-        getAll: () => request.cookies.getAll(),
-        setAll: (list) => {
-          for (const { name, value } of list) request.cookies.set(name, value);
-          response = NextResponse.next({ request });
-          for (const { name, value, options } of list) response.cookies.set(name, value, options);
+  const env = supabaseEnv();
+  // Misconfigured Supabase settings: let the request through so the app can show its setup page.
+  if (env.problem || pathname === "/api/health") return response;
+  let signedIn = false;
+  if (env.configured) {
+    try {
+      const supabase = createServerClient(env.url, env.anonKey, {
+        cookies: {
+          getAll: () => request.cookies.getAll(),
+          setAll: (list) => {
+            for (const { name, value } of list) request.cookies.set(name, value);
+            response = NextResponse.next({ request });
+            for (const { name, value, options } of list) response.cookies.set(name, value, options);
+          },
         },
-      },
-    });
-    const { data } = await supabase.auth.getUser();
-    signedIn = Boolean(data.user);
+      });
+      const { data } = await supabase.auth.getUser();
+      signedIn = Boolean(data.user);
+    } catch (e) {
+      // Never crash every request because the auth service is unreachable; pages re-check the session.
+      console.error("[proxy] Supabase session refresh failed", e instanceof Error ? e.message : e);
+    }
   } else {
     signedIn = request.cookies.has("le_demo_session");
   }

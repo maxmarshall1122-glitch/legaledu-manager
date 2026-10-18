@@ -590,6 +590,14 @@ const en = {
     retry: "Try again",
     goHome: "Go to dashboard",
   },
+  setup: {
+    title: "Configuration needed",
+    body: "The Supabase settings on the server are incomplete or invalid, so the application cannot start safely.",
+    url_missing: "NEXT_PUBLIC_SUPABASE_URL is empty.",
+    url_invalid: "NEXT_PUBLIC_SUPABASE_URL is not a valid address. It should look like https://abcdefgh.supabase.co (no spaces, no path).",
+    key_missing: "NEXT_PUBLIC_SUPABASE_ANON_KEY is empty.",
+    fix: "Fix the value in your hosting settings (Vercel → Project → Settings → Environment Variables), then redeploy.",
+  },
   confirm: {
     deleteConfirm: "Delete permanently",
     irreversible: "This action cannot be undone.",
